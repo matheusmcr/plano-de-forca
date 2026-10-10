@@ -308,7 +308,12 @@ var EX={
  lunge:{n:'Afundo estático curto',fig:'lunge',steps:['Dê um passo à frente e apoie uma mão numa cadeira ou parede.','Desça reto, apenas alguns centímetros, com o tronco ereto.','Suba empurrando o chão com o pé da frente. Termine as repetições e troque a perna.'],tip:'Amplitude pequena. Se o joelho incomodar, apoie-se mais e desça menos.'},
  super:{n:'Superman suave',fig:'super',steps:['Deite de bruços com os braços esticados à frente.','Levante braços e pernas poucos centímetros do chão, olhando para baixo.','Segure 2 segundos e desça.'],warn:'Nada de arquear forte. Se a lombar reclamar, levante só os braços ou só as pernas.'},
  march:{n:'Marcha elevando os joelhos',fig:'march',steps:['Em pé, tronco firme, suba um joelho até a altura do quadril.','Alterne as pernas num ritmo constante, sem pular.','Balance os braços de forma natural.'],tip:'Sem impacto: um pé sempre está no chão.'},
- plank:{n:'Prancha de joelhos',fig:'plank',steps:['Antebraços no chão, cotovelos sob os ombros e joelhos apoiados.','Alinhe a cabeça, o tronco e os quadris, apertando de leve o abdômen.','Respire e segure o tempo indicado.'],warn:'Ombro esquerdo: se doer, faça com as mãos numa bancada ou na parede. Lombar: não deixe o quadril cair.'}
+ plank:{n:'Prancha de joelhos',fig:'plank',steps:['Antebraços no chão, cotovelos sob os ombros e joelhos apoiados.','Alinhe a cabeça, o tronco e os quadris, apertando de leve o abdômen.','Respire e segure o tempo indicado.'],warn:'Ombro esquerdo: se doer, faça com as mãos numa bancada ou na parede. Lombar: não deixe o quadril cair.'},
+ cat:{n:'Gato-vaca',fig:'cat',labels:['Costas côncavas','Costas arredondadas'],steps:['De quatro apoios, mãos sob os ombros e joelhos sob o quadril.','Inspire côncavando as costas e olhando para frente. Expire arredondando as costas e olhando para o umbigo.','Vá devagar, acompanhando a respiração.'],tip:'Movimento pequeno e sem dor. É para lubrificar a coluna, não para forçar.'},
+ rot:{n:'Rotação de tórax',steps:['De quatro apoios, coloque uma mão atrás da cabeça.','Gire o tronco abrindo o cotovelo para o teto, olhando junto.','Volte devagar e repita, depois troque de lado.'],warn:'Ombro esquerdo: se incomodar, gire com a mão apoiada nas costelas em vez de atrás da cabeça.'},
+ circ:{n:'Círculos de ombro',steps:['Em pé, braços soltos ao lado do corpo.','Faça círculos pequenos com os ombros, para trás e depois para frente.','Mantenha o pescoço relaxado.'],warn:'Ombro esquerdo: círculos pequenos e sem forçar.'},
+ wbridge:{n:'Ponte de glúteos leve',fig:'bridge',steps:['Deite de barriga para cima, joelhos dobrados.','Suba o quadril devagar, sem exagerar na altura, e desça.'],tip:'Aqui o objetivo é ativar o glúteo, sem cansar.'},
+ wsquat:{n:'Agachamento até a cadeira leve',fig:'chair',steps:['Pés na largura dos ombros, de costas para a cadeira.','Desça até encostar na cadeira e suba, em ritmo leve.'],tip:'Só para esquentar quadril e joelhos.'}
 };
 var WARM=[
  {n:'Gato-vaca',dose:'10 repetições',fig:'cat',labels:['Costas côncavas','Costas arredondadas'],steps:['De quatro apoios, alterne arredondar e côncavar as costas devagar, acompanhando a respiração.']},
@@ -333,7 +338,13 @@ var TREINOS={
   {ex:'super',dose:'3 × 8',sets:3,reps:'8'}]},
  C:{name:'Treino C',title:'Treino C: circuito leve',day:'Sexta',circuit:true,meta:'Faça os 6 exercícios em sequência, 35 s de trabalho e 30 s de pausa. Repita o circuito 3 vezes e feche com 5 min de caminhada leve.',list:[
   {ex:'chair',dose:'35 s',work:35},{ex:'wall',dose:'35 s',work:35},{ex:'march',dose:'35 s',work:35},
-  {ex:'bridge',dose:'35 s',work:35},{ex:'plank',dose:'25 s',work:25},{ex:'bird',dose:'35 s',work:35}]}
+  {ex:'bridge',dose:'35 s',work:35},{ex:'plank',dose:'25 s',work:25},{ex:'bird',dose:'35 s',work:35}]},
+ W:{name:'Aquecimento',title:'Aquecimento',day:'Antes de todo treino',gap:15,meta:'5 a 7 minutos. Movimentos lentos e sem dor, com 15 segundos entre um e outro.',list:[
+  {ex:'cat',dose:'10 repetições',sets:1,reps:'10'},
+  {ex:'rot',dose:'8 por lado',sets:1,reps:'8 por lado'},
+  {ex:'circ',dose:'10 em cada sentido',sets:1,reps:'20',txt:'10 círculos para trás e 10 para frente'},
+  {ex:'wbridge',dose:'10 repetições',sets:1,reps:'10'},
+  {ex:'wsquat',dose:'10 repetições',sets:1,reps:'10'}]}
 };
 var DAYS=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
 var SHORT=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -357,11 +368,12 @@ function workoutHTML(k,headTag){
       '<div class="btns"><button class="btn alt" type="button" data-act="ex" data-w="'+k+'" data-i="'+i+'">Cronometrar só este exercício</button></div>');
   }).join('');
   return '<div class="view"><div><div class="eyebrow">'+t.day+'</div><'+(headTag||'h2')+'>'+t.title+'</'+(headTag||'h2')+'><p class="meta" style="margin-top:6px">'+t.meta+'</p></div>'+
-   '<div class="btns"><button class="btn" type="button" data-act="wk" data-w="'+k+'">'+(t.circuit?'Iniciar circuito completo':'Iniciar treino completo')+'</button><button class="btn alt" type="button" data-act="go" data-v="aquecimento">Fazer o aquecimento antes</button></div>'+
+   '<div class="btns"><button class="btn" type="button" data-act="wk" data-w="'+k+'">'+(k==='W'?'Iniciar aquecimento guiado':(t.circuit?'Iniciar circuito completo':'Iniciar treino completo'))+'</button>'+
+   (k==='W'?(PLAN[TODAY].v.indexOf('treino')===0?'<button class="btn alt" type="button" data-act="go" data-v="'+PLAN[TODAY].v+'">Ir para o treino de hoje</button>':''):'<button class="btn alt" type="button" data-act="go" data-v="aquecimento">Fazer o aquecimento antes</button>')+'</div>'+
    '<div class="ex-list">'+items+'</div></div>';
 }
 function warmHTML(){
-  return '<div class="view"><div><h2>Aquecimento</h2><p class="meta" style="margin-top:6px">5 a 7 minutos antes de todos os treinos. Movimentos lentos, sem dor.</p></div><div class="ex-list">'+WARM.map(function(w){return exHTML(w)}).join('')+'</div></div>';
+  return workoutHTML('W');
 }
 function walkHTML(){
   return '<div class="view"><div><div class="eyebrow">Terça, quinta e sábado</div><h2>Caminhada</h2><p class="meta" style="margin-top:6px">É a parte do plano que mais ajuda no gasto calórico, e também alivia a lombar.</p></div>'+
@@ -477,7 +489,7 @@ function bindTracker(){
 }
 
 /* ---------- ajustes e registro ---------- */
-var S={voice:true,music:true,beeps:true,voiceName:'',vMusic:0.7,vVoice:1,vBeeps:0.6};
+var S={voice:true,music:true,beeps:true,style:'lofi',voiceName:'',vMusic:0.7,vVoice:1,vBeeps:0.6};
 try{Object.assign(S,JSON.parse(localStorage.getItem('pf-set')||'{}'))}catch(e){}
 function saveS(){try{localStorage.setItem('pf-set',JSON.stringify(S))}catch(e){}}
 var LOG={};
@@ -486,6 +498,7 @@ function saveLog(){try{localStorage.setItem('pf-log',JSON.stringify(LOG))}catch(
 function ymd(d){d=d||new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
 var LABEL={A:'Treino A',B:'Treino B',C:'Treino C',W:'Caminhada'};
 function register(job){
+  if(job.kind==='warm')return '';
   var date=ymd();LOG[date]=LOG[date]||[];
   var key=job.kind==='workout'?job.k:'W';
   if(LOG[date].indexOf(key)>-1)return 'Já estava registrado hoje.';
@@ -520,6 +533,7 @@ function ajustesHTML(){
    '<label class="set"><span><b>Voz</b><br><span class="meta">Descreve exercícios, séries e intervalos.</span></span><input type="checkbox" id="sVoice"></label>'+
    '<label class="set"><span><b>Música</b><br><span class="meta">Ritmo animado no exercício e calmo no descanso.</span></span><input type="checkbox" id="sMusic"></label>'+
    '<label class="set"><span><b>Bipes</b><br><span class="meta">Sinal no início e no fim e contagem dos 3 últimos segundos.</span></span><input type="checkbox" id="sBeeps"></label>'+
+   '<label class="set"><span><b>Estilo da música</b></span><select id="sStyle"><option value="lofi">Lofi (calmo)</option><option value="pop">Animado</option></select></label>'+
    volRows('sv')+
    '<label class="set"><span><b>Voz do aparelho</b></span><select id="sVoiceName"></select></label>'+
    '<div class="btns"><button class="btn alt" type="button" data-act="testvoice">Testar som e voz</button></div></div>'+
@@ -541,6 +555,8 @@ function bindSettings(){
     };
   });
   bindVol('sv');
+  var st=document.getElementById('sStyle');st.value=S.style;
+  st.onchange=function(){S.style=st.value;saveS();if(T.steps.length&&M.phase){var ph=M.phase;musicStop();musicStart(ph)}};
   fillVoices();
   document.getElementById('sVoiceName').onchange=function(){S.voiceName=this.value;saveS()};
 }
@@ -592,35 +608,82 @@ function speakThen(text,cb){
   }catch(e){setTimeout(end,50)}
 }
 function say(text){speakThen(text,function(){})}
+// todos os sons da música passam por um filtro suave (M.inp) para soar "abafado", estilo fita
 function tone(type,f,t,dur,vol,f2){
   var c=T.ctx,o=c.createOscillator(),g=c.createGain();
   o.type=type;o.frequency.setValueAtTime(f,t);
   if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
   g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-  o.connect(g);g.connect(M.gain);o.start(t);o.stop(t+dur+0.05);
+  o.connect(g);g.connect(M.inp);o.start(t);o.stop(t+dur+0.05);
 }
-function hat(t,vol){
+function noiseBuf(){
   var c=T.ctx;
-  if(!M.noise){var b=c.createBuffer(1,Math.floor(c.sampleRate*0.06),c.sampleRate),d=b.getChannelData(0);for(var i=0;i<d.length;i++)d[i]=Math.random()*2-1;M.noise=b}
-  var s=c.createBufferSource();s.buffer=M.noise;
-  var h=c.createBiquadFilter();h.type='highpass';h.frequency.value=7000;
-  var g=c.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
-  s.connect(h);h.connect(g);g.connect(M.gain);s.start(t);
+  if(!M.noise){var b=c.createBuffer(1,Math.floor(c.sampleRate*0.3),c.sampleRate),d=b.getChannelData(0);for(var i=0;i<d.length;i++)d[i]=Math.random()*2-1;M.noise=b}
+  return M.noise;
 }
+function burst(t,type,freq,vol,dur){
+  var c=T.ctx,s=c.createBufferSource();s.buffer=noiseBuf();
+  var f=c.createBiquadFilter();f.type=type;f.frequency.value=freq;
+  var g=c.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  s.connect(f);f.connect(g);g.connect(M.inp);s.start(t);s.stop(t+dur+0.02);
+}
+// piano elétrico: seno + harmônico suave, com leve desafinação
+function keys(freqs,t,dur,vol){
+  var c=T.ctx;
+  freqs.forEach(function(fr){
+    var o=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),g2=c.createGain();
+    o.type='sine';o.frequency.value=fr;o.detune.value=(Math.random()-.5)*16;
+    o2.type='triangle';o2.frequency.value=fr*2;g2.gain.value=0.2;
+    o2.connect(g2);g2.connect(g);o.connect(g);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.015);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    g.connect(M.inp);o.start(t);o2.start(t);o.stop(t+dur+0.05);o2.stop(t+dur+0.05);
+  });
+}
+
+/* estilo animado (o antigo) */
 var BASS=[55,0,0,55,0,0,65.4,0,55,0,0,73.4,0,0,65.4,0];
 var LEAD=[220,261.6,329.6,392,329.6,261.6];
-function mStep(){
-  var c=T.ctx;if(!c||!M.gain)return;
-  var t=c.currentTime+0.02,n=M.n++,k=n%16;
+function stepPop(n,t){
+  var k=n%16;
   if(M.phase==='rest'){
     if(n%32===0)[220,261.6,329.6].forEach(function(f){tone('triangle',f,t,5,0.14)});
     if(k%4===2)tone('sine',LEAD[(n>>2)%LEAD.length]*2,t,0.8,0.08);
     return;
   }
   if(k%4===0)tone('sine',140,t,0.18,0.9,45);
-  if(k%4===2)hat(t,0.22);
+  if(k%4===2)burst(t,'highpass',7000,0.22,0.05);
   if(BASS[k])tone('triangle',BASS[k]*2,t,0.2,0.5);
   if(k%2===0&&n%64>=32)tone('square',LEAD[(n>>1)%LEAD.length],t,0.1,0.05);
+}
+
+/* estilo lofi: acordes de sétima/nona (Dm9, G13, Cmaj9, Am9), bateria suave com swing e chiado de vinil */
+var CH=[[146.83,174.61,220,261.63,329.63],[196,246.94,329.63,349.23],[164.81,196,246.94,293.66],[220,261.63,329.63,392,493.88]];
+var RT=[73.42,98,65.41,55];
+var PENTA=[587.33,698.46,783.99,880,1046.5];
+function stepLofi(n,t){
+  var k=n%16,bar=(n>>4)%4,d=M.dur;
+  if(Math.random()<0.1)burst(t+Math.random()*d,'highpass',3500,0.025,0.012);   // chiado de vinil
+  if(M.phase==='rest'){
+    if(k===0){keys(CH[bar],t,d*15,0.07);tone('sine',RT[bar],t,d*10,0.3)}
+    if(k%4===2&&Math.random()<0.28)keys([PENTA[Math.floor(Math.random()*PENTA.length)]],t,d*6,0.05);
+    return;
+  }
+  if(k===0){keys(CH[bar],t,d*7,0.09);tone('sine',RT[bar],t,d*6,0.4)}
+  if(k===7){keys(CH[bar].slice(1),t,d*3,0.06)}
+  if(k===10){keys(CH[bar],t,d*4,0.07);tone('sine',RT[bar]*1.5,t,d*3,0.25)}
+  if(k===0||k===10)tone('sine',115,t,0.2,0.55,42);                       // bumbo macio
+  if(k===4||k===12){burst(t,'bandpass',1700,0.2,0.14);tone('triangle',190,t,0.1,0.1,120)}   // caixa
+  if(k%2===0)burst(t,'highpass',6500,k%4===0?0.05:0.03,0.04);            // chimbal
+  if(bar>=2&&k%2===0&&Math.random()<0.22)keys([PENTA[Math.floor(Math.random()*PENTA.length)]],t,d*5,0.05);
+}
+function mTick(){
+  var c=T.ctx;if(!c||!M.gain)return;
+  while(M.next<c.currentTime+0.25){
+    var n=M.n++,swing=(n%2)?M.dur*0.22:0;
+    var t=M.next+swing;
+    if(S.style==='pop')stepPop(n,t);else stepLofi(n,t);
+    M.next+=M.dur;
+  }
 }
 function musicStart(phase){
   if(!S.music)return;
@@ -630,10 +693,13 @@ function musicStart(phase){
   if(!M.gain){
     M.gain=c.createGain();M.gain.gain.value=0;
     var comp=c.createDynamicsCompressor();
-    M.gain.connect(comp);comp.connect(c.destination);
+    M.inp=c.createBiquadFilter();M.inp.type='lowpass';M.inp.frequency.value=S.style==='pop'?9000:3200;
+    M.inp.connect(M.gain);M.gain.connect(comp);comp.connect(c.destination);
   }
-  M.phase=phase;M.n=0;mLevel();
-  M.iv=setInterval(mStep,60000/(phase==='rest'?72:118)/4);
+  M.inp.frequency.value=S.style==='pop'?9000:3200;
+  var bpm=S.style==='pop'?(phase==='rest'?72:118):(phase==='rest'?66:78);
+  M.phase=phase;M.n=0;M.dur=60/bpm/4;M.next=c.currentTime+0.08;mLevel();
+  M.iv=setInterval(mTick,60);
 }
 function musicStop(){
   clearInterval(M.iv);M.iv=null;M.phase=null;
@@ -659,20 +725,20 @@ function howTo(k){
   return e.n+'. Como fazer. '+parts.join(' ')+(e.warn?' Atenção: '+e.warn:'');
 }
 function briefStep(k,lead){return {t:'brief',title:EX[k].n,sub:'Ouça as instruções',say:(lead||'')+howTo(k)}}
-function itemSteps(it,nextName,lead){
+function itemSteps(it,nextName,lead,gap){
   var name=EX[it.ex].n,sets=it.sets||1,out=[briefStep(it.ex,lead)];
   for(var s=1;s<=sets;s++){
     var side=it.alt?it.alt[(s-1)%it.alt.length]:'';
     var sub=(sets>1?'Série '+s+' de '+sets:'')+(side?' · '+side:'');
     var pre=(sets>1?'Série '+s+' de '+sets+'. ':'')+(side?side+'. ':'');
     if(it.work)out.push({t:'work',secs:it.work,title:name,sub:sub||'Mantenha a posição',say:pre+'Segure por '+words(it.work)+'. Comece.'});
-    else out.push({t:'reps',secs:repEstimate(it.reps),title:name,sub:(sub?sub+' · ':'')+repsText(it.reps),say:pre+'Faça '+repsText(it.reps)+', devagar. Comece.',mid:/lado/.test(it.reps)?'Troque de lado.':null});
+    else out.push({t:'reps',secs:repEstimate(it.reps),title:name,sub:(sub?sub+' · ':'')+(it.txt||repsText(it.reps)),say:pre+'Faça '+(it.txt||repsText(it.reps))+', devagar. Comece.',mid:/lado/.test(it.reps)?'Troque de lado.':null});
     if(s<sets){
       var nside=it.alt?it.alt[s%it.alt.length]:'';
       out.push({t:'rest',secs:it.rest||45,title:'Intervalo',sub:'Próxima: série '+(s+1)+' de '+sets+(nside?' · '+nside:''),say:'Pare. Série '+s+' de '+sets+' concluída. Intervalo de '+words(it.rest||45)+'.'});
     }
   }
-  if(nextName)out.push({t:'rest',secs:120,title:'Descanso entre exercícios',sub:'Próximo: '+nextName,say:'Pare. Exercício concluído. Descanse '+words(120)+'. O próximo exercício é '+nextName+'.'});
+  if(nextName)out.push({t:'rest',secs:gap||120,title:'Descanso entre exercícios',sub:'Próximo: '+nextName,say:'Pare. Exercício concluído. Descanse '+words(gap||120)+'. O próximo exercício é '+nextName+'.'});
   return out;
 }
 function circuitSteps(t){
@@ -694,8 +760,8 @@ function workoutSteps(k){
   if(t.circuit)return circuitSteps(t);
   var out=[];
   t.list.forEach(function(it,i){
-    var lead=i===0?'Treino de hoje: '+t.title.replace(':',',')+'. São '+t.list.length+' exercícios. Primeiro exercício: ':'';
-    out=out.concat(itemSteps(it,i<t.list.length-1?EX[t.list[i+1].ex].n:null,lead));
+    var lead=i===0?(k==='W'?'Vamos ao aquecimento, '+t.list.length+' movimentos leves. Primeiro: ':'Treino de hoje: '+t.title.replace(':',',')+'. São '+t.list.length+' exercícios. Primeiro exercício: '):'';
+    out=out.concat(itemSteps(it,i<t.list.length-1?EX[t.list[i+1].ex].n:null,lead,t.gap));
   });
   return out;
 }
@@ -768,10 +834,11 @@ function finish(){
   var walk=T.job&&T.job.kind==='walk';
   $('timer').dataset.phase='work';$('tPhase').textContent='Concluído';
   $('tTitle').textContent='Muito bem!';
-  $('tSub').textContent=(walk?'Caminhada terminada. ':'Sequência terminada. ')+msg;
+  var warm=T.job&&T.job.kind==='warm';
+  $('tSub').textContent=warm?'Aquecimento terminado. Beba um pouco de água e siga para o treino.':(walk?'Caminhada terminada. ':'Sequência terminada. ')+msg;
   $('tClock').className='t-clock sm';$('tClock').textContent='Fim';$('tBar').style.width='100%';$('tNext').textContent='';
   $('tDone').hidden=true;$('tPause').hidden=true;
-  say('Pare. '+(walk?'Caminhada concluída':'Treino concluído')+'. Parabéns! '+msg);
+  say(warm?'Pare. Aquecimento concluído. Beba um pouco de água e vamos ao treino.':'Pare. '+(walk?'Caminhada concluída':'Treino concluído')+'. Parabéns! '+msg);
   beep(660,200);setTimeout(function(){beep(880,200)},250);setTimeout(function(){beep(1100,350)},500);buzz([200,100,200,100,400]);
   setTimeout(musicStop,8000);
   T.i=T.steps.length;
@@ -810,7 +877,7 @@ document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act]');if(!b)return;
   var a=b.dataset.act;
   if(a==='go')show(b.dataset.v);
-  else if(a==='wk')startQueue(workoutSteps(b.dataset.w),{kind:'workout',k:b.dataset.w});
+  else if(a==='wk')startQueue(workoutSteps(b.dataset.w),{kind:b.dataset.w==='W'?'warm':'workout',k:b.dataset.w});
   else if(a==='testvoice'){
     actx();say('Olá! Esta é a voz do seu treino. Comece.');beep(880,250);
     if(!T.steps.length){musicStart('work');setTimeout(function(){if(!T.steps.length)musicStop()},5000)}
