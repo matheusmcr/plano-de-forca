@@ -136,6 +136,17 @@ button.link{font:500 .85rem var(--body);background:none;border:0;color:var(--mut
 .set select{max-width:55%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
 .t-vol{background:var(--bg);border-radius:10px;padding:2px 12px}
 .set.vol input[type=range]{width:55%;accent-color:var(--accent)}
+.bform{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.bform label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted);min-width:0}
+.bform input{font:inherit;font-size:1rem;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0;width:100%}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font:10px var(--body)}
+.chart .ln{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.chart .dot{fill:var(--accent)}
+.chart .gl{stroke:var(--line);stroke-width:1}
+.sum{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.95rem}
+.sum b{font-weight:600}
+.rm{font:500 .8rem var(--body);background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
 #history{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 @media (prefers-reduced-motion:reduce){.bar i,.side{transition:none}}
 </style>
@@ -194,6 +205,21 @@ button.link{font:500 .85rem var(--body);background:none;border:0;color:var(--mut
       <div class="grid" id="grid"></div>
       <button class="link" id="reset" type="button">Limpar marcações</button>
     </div>
+    <h3>Peso e medidas</h3>
+    <p class="meta">Opcional. Preencha só o que quiser e salve de tempos em tempos (por exemplo, a cada 2 semanas) para comparar a evolução. Meça sempre no mesmo horário, de preferência de manhã.</p>
+    <form class="card" id="bodyForm" autocomplete="off">
+      <div class="bform">
+        <label>Data<input type="date" id="bDate"></label>
+        <label>Peso (kg)<input type="text" inputmode="decimal" id="b_w" placeholder="ex.: 75,4"></label>
+        <label>Braço (cm)<input type="text" inputmode="decimal" id="b_arm" placeholder="ex.: 29"></label>
+        <label>Perna (cm)<input type="text" inputmode="decimal" id="b_leg" placeholder="ex.: 58"></label>
+        <label>Abdômen (cm)<input type="text" inputmode="decimal" id="b_abd" placeholder="ex.: 88"></label>
+        <label>Peito (cm)<input type="text" inputmode="decimal" id="b_chest" placeholder="ex.: 95"></label>
+      </div>
+      <p class="meta">Onde medir: braço relaxado na parte mais larga; perna (coxa) no ponto mais largo; abdômen na altura do umbigo; peito na altura dos mamilos, com a fita nivelada.</p>
+      <div class="btns"><button class="btn" type="submit">Salvar medidas</button><span class="meta" id="bMsg" role="status"></span></div>
+    </form>
+    <div id="bodyOut"></div>
     <h3>Últimos registros</h3>
     <ul id="history"></ul>
     <h3>Como progredir</h3>
@@ -483,6 +509,7 @@ function bindTracker(){
     grid.querySelectorAll('.chk').forEach(function(c){c.checked=false});updateCount();
   };
   updateCount();
+  bindBody();
   document.getElementById('history').innerHTML=Object.keys(LOG).sort().reverse().slice(0,10).map(function(d){
     var p=d.split('-');return '<li>'+p[2]+'/'+p[1]+' · '+LOG[d].map(function(k){return LABEL[k]}).join(', ')+'</li>';
   }).join('')||'<li class="meta">Nenhum registro ainda. Os treinos concluídos pelo cronômetro aparecem aqui.</li>';
@@ -508,6 +535,72 @@ function register(job){
     return 'Treino registrado.';
   }
   return 'Caminhada registrada.';
+}
+/* ---------- peso e medidas ---------- */
+var BODY=[];
+try{BODY=JSON.parse(localStorage.getItem('pf-body')||'[]')||[]}catch(e){BODY=[]}
+function saveBody(){try{localStorage.setItem('pf-body',JSON.stringify(BODY))}catch(e){}}
+var BF=[['w','Peso','kg'],['arm','Braço','cm'],['leg','Perna','cm'],['abd','Abdômen','cm'],['chest','Peito','cm']];
+function parseNum(v){var n=parseFloat(String(v||'').trim().replace(',','.'));return isFinite(n)&&n>0&&n<500?Math.round(n*10)/10:null}
+function nf(n){return n==null?'—':n.toLocaleString('pt-BR',{maximumFractionDigits:1})}
+function dbr(d){var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0].slice(2)}
+function bodyChart(){
+  var pts=BODY.filter(function(r){return r.w!=null});
+  if(pts.length<2)return '';
+  var W=320,H=130,L=34,R=12,Tp=14,B=24;
+  var ts=pts.map(function(r){return Date.parse(r.d)}),t0=ts[0],t1=ts[ts.length-1]||t0+1;
+  var vs=pts.map(function(r){return r.w}),lo=Math.min.apply(null,vs)-0.5,hi=Math.max.apply(null,vs)+0.5;
+  var X=function(t){return L+(t1===t0?0:(t-t0)/(t1-t0))*(W-L-R)},Y=function(v){return Tp+(1-(v-lo)/(hi-lo))*(H-Tp-B)};
+  var line=pts.map(function(r,i){return X(ts[i]).toFixed(1)+','+Y(r.w).toFixed(1)}).join(' ');
+  var dots=pts.map(function(r,i){return '<circle class="dot" cx="'+X(ts[i]).toFixed(1)+'" cy="'+Y(r.w).toFixed(1)+'" r="3.5"/>'}).join('');
+  var last=pts[pts.length-1];
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Gráfico do peso ao longo do tempo">'+
+   '<line class="gl" x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(hi).toFixed(1)+'" y2="'+Y(hi).toFixed(1)+'"/><line class="gl" x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(lo).toFixed(1)+'" y2="'+Y(lo).toFixed(1)+'"/>'+
+   '<text x="'+(L-4)+'" y="'+(Y(hi)+3).toFixed(1)+'" text-anchor="end">'+nf(Math.round(hi*10)/10)+'</text><text x="'+(L-4)+'" y="'+(Y(lo)+3).toFixed(1)+'" text-anchor="end">'+nf(Math.round(lo*10)/10)+'</text>'+
+   '<polyline class="ln" points="'+line+'"/>'+dots+
+   '<text x="'+X(ts[ts.length-1]).toFixed(1)+'" y="'+(Y(last.w)-8).toFixed(1)+'" text-anchor="end">'+nf(last.w)+' kg</text>'+
+   '<text x="'+L+'" y="'+(H-6)+'">'+dbr(pts[0].d)+'</text><text x="'+(W-R)+'" y="'+(H-6)+'" text-anchor="end">'+dbr(last.d)+'</text></svg>';
+}
+function renderBody(){
+  var out=document.getElementById('bodyOut');if(!out)return;
+  if(!BODY.length){out.innerHTML='<p class="meta">Nenhuma medida salva ainda.</p>';return}
+  // variação entre a primeira e a última medida de cada item
+  var sum=BF.map(function(f){
+    var rs=BODY.filter(function(r){return r[f[0]]!=null});
+    if(rs.length<2)return '';
+    var d=Math.round((rs[rs.length-1][f[0]]-rs[0][f[0]])*10)/10;
+    return '<span>'+f[1]+': <b>'+(d>0?'+':'')+nf(d)+' '+f[2]+'</b></span>';
+  }).filter(Boolean).join('');
+  var rows=BODY.slice().reverse().map(function(r){
+    return '<tr><td>'+dbr(r.d)+'</td>'+BF.map(function(f){return '<td>'+nf(r[f[0]])+'</td>'}).join('')+'<td><button class="rm" type="button" data-bdel="'+r.d+'">Remover</button></td></tr>';
+  }).join('');
+  out.innerHTML=(sum?'<div class="card"><b>Variação desde a primeira medida</b><div class="sum">'+sum+'</div></div>':'')+
+    (bodyChart()?'<div class="card"><b>Peso (kg)</b>'+bodyChart()+'</div>':'')+
+    '<div class="scroller"><table style="min-width:480px"><tr><th>Data</th><th>Peso kg</th><th>Braço cm</th><th>Perna cm</th><th>Abdômen cm</th><th>Peito cm</th><th></th></tr>'+rows+'</table></div>';
+  out.querySelectorAll('[data-bdel]').forEach(function(b){
+    b.onclick=function(){
+      if(b.dataset.arm!=='1'){b.dataset.arm='1';b.textContent='Confirmar remoção';return}
+      BODY=BODY.filter(function(r){return r.d!==b.dataset.bdel});saveBody();renderBody();
+    };
+  });
+}
+function bindBody(){
+  var msg=document.getElementById('bMsg');
+  document.getElementById('bDate').value=ymd();
+  document.getElementById('bodyForm').onsubmit=function(e){
+    e.preventDefault();
+    var d=document.getElementById('bDate').value||ymd(),rec={d:d},any=false;
+    BF.forEach(function(f){var v=parseNum(document.getElementById('b_'+f[0]).value);if(v!=null){rec[f[0]]=v;any=true}});
+    if(!any){msg.textContent='Preencha pelo menos um valor (use números, como 75,4).';return}
+    var i=BODY.findIndex(function(r){return r.d===d});
+    if(i>-1)BODY[i]=Object.assign(BODY[i],rec);else BODY.push(rec);
+    BODY.sort(function(a,b){return a.d<b.d?-1:1});
+    saveBody();
+    BF.forEach(function(f){document.getElementById('b_'+f[0]).value=''});
+    msg.textContent='Salvo em '+dbr(d)+'.';
+    renderBody();
+  };
+  renderBody();
 }
 function pickVoice(){
   if(!('speechSynthesis' in window))return null;
@@ -774,7 +867,7 @@ function walkSteps(m){
 /* ---------- execução: primeiro a voz, depois a contagem ---------- */
 function startQueue(steps,job){
   actx();
-  T.steps=steps;T.i=-1;T.paused=false;T.job=job||null;
+  T.steps=steps;T.i=-1;T.ok=0;T.paused=false;T.job=job||null;
   $('timer').hidden=false;document.body.classList.add('timing');
   getLock();
   nextStep();
@@ -803,7 +896,7 @@ function begin(s){
   speakThen(s.say,function(){afterSpeech(s)});
 }
 function afterSpeech(s){
-  if(s.t==='brief'){nextStep();return}
+  if(s.t==='brief'){T.ok++;nextStep();return}
   T.state='counting';
   $('tPhase').textContent=s.t==='rest'?'Intervalo':'Exercício';
   $('tDone').hidden=s.t!=='reps';
@@ -821,7 +914,7 @@ function tick(){
   if(T.paused||T.state!=='counting')return;
   var s=T.steps[T.i];if(!s)return;
   T.left=T.end-Date.now();
-  if(T.left<=0){beep(1200,400);buzz(300);nextStep();return}
+  if(T.left<=0){T.ok++;beep(1200,400);buzz(300);nextStep();return}
   var sec=Math.ceil(T.left/1000);
   if(s.mid&&!T.midDone&&T.left<=s.secs*500){T.midDone=true;beep(700,200);say(s.mid)}
   if(sec===10&&s.secs>=30&&!T.tenDone){T.tenDone=true;say('Dez segundos.')}
@@ -830,15 +923,17 @@ function tick(){
 }
 function finish(){
   clearInterval(T.iv);T.state='done';
-  var msg=T.job?register(T.job):'';
-  var walk=T.job&&T.job.kind==='walk';
-  $('timer').dataset.phase='work';$('tPhase').textContent='Concluído';
-  $('tTitle').textContent='Muito bem!';
-  var warm=T.job&&T.job.kind==='warm';
-  $('tSub').textContent=warm?'Aquecimento terminado. Beba um pouco de água e siga para o treino.':(walk?'Caminhada terminada. ':'Sequência terminada. ')+msg;
+  var total=T.steps.length,pct=total?Math.round(T.ok/total*100):0;
+  var enough=pct>=80;                       // só conta se pelo menos 80% dos passos foram concluídos (pular não conta)
+  var walk=T.job&&T.job.kind==='walk',warm=T.job&&T.job.kind==='warm',reg=T.job&&!warm;
+  var msg=reg?(enough?register(T.job):'Não registrado: você concluiu '+pct+'% dos passos e o mínimo é 80%.'):'';
+  var bad=reg&&!enough;
+  $('timer').dataset.phase='work';$('tPhase').textContent=bad?'Encerrado':'Concluído';
+  $('tTitle').textContent=bad?'Sequência incompleta':'Muito bem!';
+  $('tSub').textContent=warm?'Aquecimento terminado. Beba um pouco de água e siga para o treino.':(reg?(walk?'Caminhada terminada. ':'Sequência terminada. ')+msg:'Exercício terminado.');
   $('tClock').className='t-clock sm';$('tClock').textContent='Fim';$('tBar').style.width='100%';$('tNext').textContent='';
   $('tDone').hidden=true;$('tPause').hidden=true;
-  say(warm?'Pare. Aquecimento concluído. Beba um pouco de água e vamos ao treino.':'Pare. '+(walk?'Caminhada concluída':'Treino concluído')+'. Parabéns! '+msg);
+  say(warm?'Pare. Aquecimento concluído. Beba um pouco de água e vamos ao treino.':(reg?(bad?'Pare. Sequência encerrada sem registro, porque menos de 80 por cento dos passos foram concluídos.':'Pare. '+(walk?'Caminhada concluída':'Treino concluído')+'. Parabéns! '+msg):'Pare. Exercício concluído.'));
   beep(660,200);setTimeout(function(){beep(880,200)},250);setTimeout(function(){beep(1100,350)},500);buzz([200,100,200,100,400]);
   setTimeout(musicStop,8000);
   T.i=T.steps.length;
@@ -851,7 +946,7 @@ function stop(){
   $('timer').hidden=true;document.body.classList.remove('timing');$('tVol').hidden=true;
   try{if(T.lock){T.lock.release();T.lock=null}}catch(e){}
 }
-$('tDone').onclick=function(){if(T.state==='counting')nextStep()};
+$('tDone').onclick=function(){if(T.state==='counting'){T.ok++;nextStep()}};
 $('tSkip').onclick=function(){if(T.i<T.steps.length)nextStep();else stop()};
 $('tStop').onclick=stop;
 $('tPause').onclick=function(){
