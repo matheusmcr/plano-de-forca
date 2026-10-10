@@ -130,6 +130,13 @@ button.link{font:500 .85rem var(--body);background:none;border:0;color:var(--mut
 .timer[data-phase="rest"] .t-bar i{background:var(--rest)}
 .t-btns{display:flex;gap:8px;flex-wrap:wrap}
 .t-btns .btn{padding:9px 14px;font-size:.9rem}
+.ex-link{font:inherit;font-weight:600;background:none;border:0;color:var(--accent);text-decoration:underline;padding:0;cursor:pointer;text-align:left}
+.ex-hint{color:var(--muted);font-size:.85rem;font-weight:400}
+.modal{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
+.modal[hidden]{display:none}
+.sheet{background:var(--bg);width:100%;max-width:760px;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:0 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.sheet-h{position:sticky;top:0;background:var(--bg);display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 0 10px;z-index:1}
+.mclock{font:700 1.6rem/1.1 var(--display);font-variant-numeric:tabular-nums}
 .set{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid var(--line)}
 .set:last-of-type{border-bottom:0}
 .set input[type=checkbox]{width:24px;height:24px;accent-color:var(--accent);flex:none}
@@ -180,6 +187,16 @@ button.link{font:500 .85rem var(--body);background:none;border:0;color:var(--mut
       <button class="btn alt" id="tVolBtn" type="button">Volume</button>
       <button class="btn alt" id="tStop" type="button">Encerrar</button>
     </div>
+  </div>
+</div>
+
+<div class="modal" id="exModal" hidden role="dialog" aria-modal="true" aria-label="Como fazer o exercício">
+  <div class="sheet">
+    <div class="sheet-h">
+      <div><span class="t-phase">Como fazer · cronômetro</span><div class="mclock" id="mClock"></div></div>
+      <button class="btn" id="exClose" type="button">Fechar</button>
+    </div>
+    <div id="exBody"></div>
   </div>
 </div>
 
@@ -817,21 +834,21 @@ function howTo(k){
   });
   return e.n+'. Como fazer. '+parts.join(' ')+(e.warn?' Atenção: '+e.warn:'');
 }
-function briefStep(k,lead){return {t:'brief',title:EX[k].n,sub:'Ouça as instruções',say:(lead||'')+howTo(k)}}
-function itemSteps(it,nextName,lead,gap){
+function briefStep(k,lead){return {t:'brief',ex:k,title:EX[k].n,sub:'Ouça as instruções',say:(lead||'')+howTo(k)}}
+function itemSteps(it,nextName,lead,gap,nextKey){
   var name=EX[it.ex].n,sets=it.sets||1,out=[briefStep(it.ex,lead)];
   for(var s=1;s<=sets;s++){
     var side=it.alt?it.alt[(s-1)%it.alt.length]:'';
     var sub=(sets>1?'Série '+s+' de '+sets:'')+(side?' · '+side:'');
     var pre=(sets>1?'Série '+s+' de '+sets+'. ':'')+(side?side+'. ':'');
-    if(it.work)out.push({t:'work',secs:it.work,title:name,sub:sub||'Mantenha a posição',say:pre+'Segure por '+words(it.work)+'. Comece.'});
-    else out.push({t:'reps',secs:repEstimate(it.reps),title:name,sub:(sub?sub+' · ':'')+(it.txt||repsText(it.reps)),say:pre+'Faça '+(it.txt||repsText(it.reps))+', devagar. Comece.',mid:/lado/.test(it.reps)?'Troque de lado.':null});
+    if(it.work)out.push({t:'work',ex:it.ex,secs:it.work,title:name,sub:sub||'Mantenha a posição',say:pre+'Segure por '+words(it.work)+'. Comece.'});
+    else out.push({t:'reps',ex:it.ex,secs:repEstimate(it.reps),title:name,sub:(sub?sub+' · ':'')+(it.txt||repsText(it.reps)),say:pre+'Faça '+(it.txt||repsText(it.reps))+', devagar. Comece.',mid:/lado/.test(it.reps)?'Troque de lado.':null});
     if(s<sets){
       var nside=it.alt?it.alt[s%it.alt.length]:'';
-      out.push({t:'rest',secs:it.rest||45,title:'Intervalo',sub:'Próxima: série '+(s+1)+' de '+sets+(nside?' · '+nside:''),say:'Pare. Série '+s+' de '+sets+' concluída. Intervalo de '+words(it.rest||45)+'.'});
+      out.push({t:'rest',ex:it.ex,secs:it.rest||45,title:'Intervalo',sub:'Próxima: série '+(s+1)+' de '+sets+(nside?' · '+nside:''),say:'Pare. Série '+s+' de '+sets+' concluída. Intervalo de '+words(it.rest||45)+'.'});
     }
   }
-  if(nextName)out.push({t:'rest',secs:gap||120,title:'Descanso entre exercícios',sub:'Próximo: '+nextName,say:'Pare. Exercício concluído. Descanse '+words(gap||120)+'. O próximo exercício é '+nextName+'.'});
+  if(nextName)out.push({t:'rest',ex:nextKey,secs:gap||120,title:'Descanso entre exercícios',sub:'Próximo: '+nextName,say:'Pare. Exercício concluído. Descanse '+words(gap||120)+'. O próximo exercício é '+nextName+'.'});
   return out;
 }
 function circuitSteps(t){
@@ -840,10 +857,10 @@ function circuitSteps(t){
   for(var r=1;r<=3;r++)for(var j=0;j<n;j++){
     var name=EX[list[j].ex].n;
     if(r===1)out.push(briefStep(list[j].ex,'Exercício '+(j+1)+' de '+n+'. '));
-    out.push({t:'work',secs:list[j].work,title:name,sub:'Rodada '+r+' de 3 · exercício '+(j+1)+' de '+n,say:'Rodada '+r+', '+name+'. Comece.'});
+    out.push({t:'work',ex:list[j].ex,secs:list[j].work,title:name,sub:'Rodada '+r+' de 3 · exercício '+(j+1)+' de '+n,say:'Rodada '+r+', '+name+'. Comece.'});
     if(!(r===3&&j===n-1)){
       var endRound=(j===n-1),nx=EX[list[endRound?0:j+1].ex].n,secs=endRound?60:30;
-      out.push({t:'rest',secs:secs,title:endRound?'Descanso entre rodadas':'Intervalo',sub:'Próximo: '+nx,say:'Pare. '+(endRound?'Rodada '+r+' concluída. ':'')+'Descanse '+words(secs)+'. Próximo: '+nx+'.'});
+      out.push({t:'rest',ex:list[endRound?0:j+1].ex,secs:secs,title:endRound?'Descanso entre rodadas':'Intervalo',sub:'Próximo: '+nx,say:'Pare. '+(endRound?'Rodada '+r+' concluída. ':'')+'Descanse '+words(secs)+'. Próximo: '+nx+'.'});
     }
   }
   return out;
@@ -854,7 +871,7 @@ function workoutSteps(k){
   var out=[];
   t.list.forEach(function(it,i){
     var lead=i===0?(k==='W'?'Vamos ao aquecimento, '+t.list.length+' movimentos leves. Primeiro: ':'Treino de hoje: '+t.title.replace(':',',')+'. São '+t.list.length+' exercícios. Primeiro exercício: '):'';
-    out=out.concat(itemSteps(it,i<t.list.length-1?EX[t.list[i+1].ex].n:null,lead,t.gap));
+    out=out.concat(itemSteps(it,i<t.list.length-1?EX[t.list[i+1].ex].n:null,lead,t.gap,i<t.list.length-1?t.list[i+1].ex:null));
   });
   return out;
 }
@@ -880,7 +897,7 @@ function nextStep(){
   var s=T.steps[T.i],nx=T.steps[T.i+1];
   T.midDone=false;T.tenDone=false;T.lastSec=-1;T.paused=false;
   $('timer').dataset.phase=s.t==='rest'||s.t==='brief'?'rest':'work';
-  $('tTitle').textContent=s.title;$('tSub').textContent=s.sub||'';
+  setTitle(s);$('tSub').textContent=s.sub||'';
   var follow=nx&&nx.t==='brief'?nx.title:nx;
   $('tNext').textContent=nx?'A seguir: '+(nx.t==='rest'?'intervalo':nx.title):'Último passo';
   $('tPause').hidden=false;$('tPause').textContent='Pausar';$('tDone').hidden=true;
@@ -939,7 +956,35 @@ function finish(){
   T.i=T.steps.length;
   if(current==='hoje'||current==='progresso')show(current);
 }
+/* ---------- janela "como fazer" sobre o treino ---------- */
+var modalFrom=null,modalIv=null;
+function setTitle(s){
+  var el=$('tTitle');
+  if(s.ex&&EX[s.ex]){
+    el.textContent='';
+    var b=document.createElement('button');b.type='button';b.className='ex-link';b.dataset.act='showex';b.dataset.ex=s.ex;b.textContent=s.title;
+    var h=document.createElement('span');h.className='ex-hint';h.textContent=' · ver '+(s.t==='rest'?EX[s.ex].n:'como fazer');
+    el.appendChild(b);el.appendChild(h);
+  }else el.textContent=s.title;
+}
+function openEx(k,from){
+  var e=EX[k];if(!e)return;
+  $('exBody').innerHTML=exHTML({n:e.n,dose:'',fig:e.fig,labels:e.labels,steps:e.steps,tip:e.tip,warn:e.warn});
+  $('exModal').hidden=false;modalFrom=from||null;
+  $('mClock').textContent=$('tClock').textContent;
+  clearInterval(modalIv);modalIv=setInterval(function(){$('mClock').textContent=$('tClock').textContent},300);
+  $('exClose').focus();
+}
+function closeEx(){
+  if($('exModal').hidden)return;
+  $('exModal').hidden=true;clearInterval(modalIv);
+  if(modalFrom&&document.body.contains(modalFrom))modalFrom.focus();
+}
+$('exClose').onclick=closeEx;
+$('exModal').onclick=function(e){if(e.target===this)closeEx()};
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeEx()});
 function stop(){
+  closeEx();
   clearInterval(T.iv);T.steps=[];T.job=null;T.tok++;T.state='';
   try{speechSynthesis.cancel()}catch(e){}
   M.duck=false;musicStop();
@@ -982,6 +1027,7 @@ document.addEventListener('click',function(e){
     var st=itemSteps(it,null);
     startQueue(st);
   }
+  else if(a==='showex')openEx(b.dataset.ex,b);
   else if(a==='walk')startQueue(walkSteps(+b.dataset.m),{kind:'walk'});
 });
 
