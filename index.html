@@ -134,6 +134,8 @@ button.link{font:500 .85rem var(--body);background:none;border:0;color:var(--mut
 .set:last-of-type{border-bottom:0}
 .set input[type=checkbox]{width:24px;height:24px;accent-color:var(--accent);flex:none}
 .set select{max-width:55%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.t-vol{background:var(--bg);border-radius:10px;padding:2px 12px}
+.set.vol input[type=range]{width:55%;accent-color:var(--accent)}
 #history{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 @media (prefers-reduced-motion:reduce){.bar i,.side{transition:none}}
 </style>
@@ -159,10 +161,12 @@ button.link{font:500 .85rem var(--body);background:none;border:0;color:var(--mut
       <div class="t-clock" id="tClock" aria-live="off">0:00</div>
     </div>
     <div class="t-bar"><i id="tBar"></i></div>
+    <div id="tVol" class="t-vol" hidden></div>
     <div class="t-btns">
       <button class="btn" id="tDone" type="button" hidden>Terminei a série</button>
       <button class="btn alt" id="tPause" type="button">Pausar</button>
       <button class="btn alt" id="tSkip" type="button">Pular</button>
+      <button class="btn alt" id="tVolBtn" type="button">Volume</button>
       <button class="btn alt" id="tStop" type="button">Encerrar</button>
     </div>
   </div>
@@ -473,7 +477,7 @@ function bindTracker(){
 }
 
 /* ---------- ajustes e registro ---------- */
-var S={voice:true,music:true,beeps:true,voiceName:''};
+var S={voice:true,music:true,beeps:true,voiceName:'',vMusic:0.7,vVoice:1,vBeeps:0.6};
 try{Object.assign(S,JSON.parse(localStorage.getItem('pf-set')||'{}'))}catch(e){}
 function saveS(){try{localStorage.setItem('pf-set',JSON.stringify(S))}catch(e){}}
 var LOG={};
@@ -498,34 +502,52 @@ function pickVoice(){
   var v=vs.filter(function(x){return x.name===S.voiceName})[0]||vs.filter(function(x){return x.lang==='pt-BR'||x.lang==='pt_BR'})[0]||vs.filter(function(x){return /^pt/i.test(x.lang)})[0];
   return v||null;
 }
+function volRows(p){
+  return '<label class="set vol"><span><b>Volume da música</b></span><input type="range" min="0" max="100" id="'+p+'Music" aria-label="Volume da música"></label>'+
+         '<label class="set vol"><span><b>Volume da voz</b></span><input type="range" min="0" max="100" id="'+p+'Voice" aria-label="Volume da voz"></label>'+
+         '<label class="set vol"><span><b>Volume dos bipes</b></span><input type="range" min="0" max="100" id="'+p+'Beeps" aria-label="Volume dos bipes"></label>';
+}
+function bindVol(p){
+  [['Music','vMusic'],['Voice','vVoice'],['Beeps','vBeeps']].forEach(function(q){
+    var el=document.getElementById(p+q[0]);if(!el)return;
+    el.value=Math.round(S[q[1]]*100);
+    el.oninput=function(){S[q[1]]=el.value/100;saveS();mLevel()};
+  });
+}
 function ajustesHTML(){
-  return '<div class="view"><div><h2>Som e voz</h2><p class="meta" style="margin-top:6px">No treino guiado a voz anuncia cada exercício, quando começar e quando parar. A música toca entre as falas e baixa de volume enquanto a voz fala.</p></div>'+
+  return '<div class="view"><div><h2>Som e voz</h2><p class="meta" style="margin-top:6px">No treino guiado a voz descreve cada exercício antes de começar, anuncia cada série e cada intervalo, e só então a contagem de tempo roda. A música baixa de volume enquanto a voz fala.</p></div>'+
    '<div class="card">'+
-   '<label class="set"><span><b>Voz</b><br><span class="meta">Anuncia exercício, início, parada e descanso.</span></span><input type="checkbox" id="sVoice"></label>'+
+   '<label class="set"><span><b>Voz</b><br><span class="meta">Descreve exercícios, séries e intervalos.</span></span><input type="checkbox" id="sVoice"></label>'+
    '<label class="set"><span><b>Música</b><br><span class="meta">Ritmo animado no exercício e calmo no descanso.</span></span><input type="checkbox" id="sMusic"></label>'+
    '<label class="set"><span><b>Bipes</b><br><span class="meta">Sinal no início e no fim e contagem dos 3 últimos segundos.</span></span><input type="checkbox" id="sBeeps"></label>'+
+   volRows('sv')+
    '<label class="set"><span><b>Voz do aparelho</b></span><select id="sVoiceName"></select></label>'+
    '<div class="btns"><button class="btn alt" type="button" data-act="testvoice">Testar som e voz</button></div></div>'+
    '<p class="tip"><b>Dica.</b> Mantenha a tela ligada durante o treino. Em alguns celulares, a tela bloqueada pausa o cronômetro, a voz e a música. A página pede ao aparelho para manter a tela acesa.</p></div>';
 }
 function fillVoices(){
-  var sel=$('sVoiceName');if(!sel)return;
+  var sel=document.getElementById('sVoiceName');if(!sel)return;
   var vs=('speechSynthesis' in window)?speechSynthesis.getVoices().filter(function(v){return /^pt/i.test(v.lang)}):[];
   sel.innerHTML=vs.length?vs.map(function(v){return '<option value="'+v.name+'">'+v.name+' ('+v.lang+')</option>'}).join(''):'<option value="">Padrão do aparelho</option>';
   var cur=pickVoice();if(cur)sel.value=cur.name;
 }
 function bindSettings(){
   [['sVoice','voice'],['sMusic','music'],['sBeeps','beeps']].forEach(function(p){
-    var el=$(p[0]);el.checked=!!S[p[1]];
-    el.onchange=function(){S[p[1]]=el.checked;saveS();if(p[1]==='music'&&T.steps.length){el.checked?musicStart(T.steps[T.i]&&T.steps[T.i].t==='rest'?'rest':'work'):musicStop()}if(p[1]==='voice'&&!el.checked){try{speechSynthesis.cancel()}catch(e){}}};
+    var el=document.getElementById(p[0]);el.checked=!!S[p[1]];
+    el.onchange=function(){
+      S[p[1]]=el.checked;saveS();
+      if(p[1]==='music'&&T.steps.length){if(el.checked){var s=T.steps[T.i];musicStart(s&&(s.t==='rest'||s.t==='brief')?'rest':'work')}else musicStop()}
+      if(p[1]==='voice'&&!el.checked){try{speechSynthesis.cancel()}catch(e){}}
+    };
   });
+  bindVol('sv');
   fillVoices();
-  $('sVoiceName').onchange=function(){S.voiceName=this.value;saveS()};
+  document.getElementById('sVoiceName').onchange=function(){S.voiceName=this.value;saveS()};
 }
 if('speechSynthesis' in window){try{speechSynthesis.onvoiceschanged=fillVoices}catch(e){}}
 
 /* ---------- áudio: bipes, voz e música ---------- */
-var T={steps:[],i:-1,end:0,left:0,paused:false,iv:null,lock:null,ctx:null,lastSec:-1,midDone:false,tenDone:false,job:null};
+var T={steps:[],i:-1,end:0,left:0,paused:false,iv:null,lock:null,ctx:null,lastSec:-1,midDone:false,tenDone:false,job:null,tok:0,state:''};
 var $=function(id){return document.getElementById(id)};
 function fmt(ms){var s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2)}
 function actx(){
@@ -536,29 +558,40 @@ function actx(){
   return T.ctx;
 }
 function beep(freq,dur){
-  if(!S.beeps)return;
+  if(!S.beeps||S.vBeeps<=0)return;
   try{
     var c=actx(),o=c.createOscillator(),g=c.createGain();
-    o.frequency.value=freq;o.type='sine';g.gain.value=.25;o.connect(g);g.connect(c.destination);
+    o.frequency.value=freq;o.type='sine';g.gain.value=.6*S.vBeeps;o.connect(g);g.connect(c.destination);
     o.start();o.stop(c.currentTime+dur/1000);
   }catch(e){}
 }
 function buzz(p){try{if(navigator.vibrate)navigator.vibrate(p)}catch(e){}}
 var M={iv:null,n:0,phase:null,gain:null,duck:false,noise:null};
-function mLevel(){if(M.gain&&T.ctx)M.gain.gain.setTargetAtTime(M.duck?0.06:0.28,T.ctx.currentTime,0.2)}
-function say(text){
-  if(!S.voice||!text||!('speechSynthesis' in window))return;
+function mLevel(){if(M.gain&&T.ctx)M.gain.gain.setTargetAtTime((M.duck?0.35:1)*S.vMusic*1.3,T.ctx.currentTime,0.2)}
+// fala o texto e chama cb só quando a fala termina (ou, se o aparelho não avisar, após uma estimativa)
+function speakThen(text,cb){
+  var tok=T.tok;
+  if(!S.voice||!text||!('speechSynthesis' in window)){setTimeout(function(){if(tok===T.tok)cb()},50);return}
+  var fin=false,tm=null;
+  function end(){
+    if(fin)return;fin=true;clearTimeout(tm);
+    if(tok!==T.tok)return;
+    M.duck=false;mLevel();cb();
+  }
   try{
     speechSynthesis.cancel();
     setTimeout(function(){
-      var u=new SpeechSynthesisUtterance(text);u.lang='pt-BR';
+      if(tok!==T.tok)return;
+      var u=new SpeechSynthesisUtterance(text);u.lang='pt-BR';u.volume=S.vVoice;
       var v=pickVoice();if(v)u.voice=v;
-      u.onstart=function(){M.duck=true;mLevel()};
-      u.onend=u.onerror=function(){M.duck=false;mLevel()};
+      u.onstart=function(){if(tok===T.tok){M.duck=true;mLevel()}};
+      u.onend=end;u.onerror=end;
       speechSynthesis.speak(u);
-    },60);
-  }catch(e){}
+      tm=setTimeout(end,text.length*95+5000);
+    },80);
+  }catch(e){setTimeout(end,50)}
 }
+function say(text){speakThen(text,function(){})}
 function tone(type,f,t,dur,vol,f2){
   var c=T.ctx,o=c.createOscillator(),g=c.createGain();
   o.type=type;o.frequency.setValueAtTime(f,t);
@@ -594,7 +627,11 @@ function musicStart(phase){
   if(M.iv&&M.phase===phase)return;
   clearInterval(M.iv);
   var c=actx();if(!c)return;
-  if(!M.gain){M.gain=c.createGain();M.gain.gain.value=0;M.gain.connect(c.destination)}
+  if(!M.gain){
+    M.gain=c.createGain();M.gain.gain.value=0;
+    var comp=c.createDynamicsCompressor();
+    M.gain.connect(comp);comp.connect(c.destination);
+  }
   M.phase=phase;M.n=0;mLevel();
   M.iv=setInterval(mStep,60000/(phase==='rest'?72:118)/4);
 }
@@ -611,31 +648,43 @@ function repEstimate(r){
   if(/lado/.test(r))n*=2;
   return Math.max(15,n*4);
 }
-function itemSteps(it,nextName){
-  var name=EX[it.ex].n,sets=it.sets||1,out=[];
+function lowerFirst(s){return s.charAt(0).toLowerCase()+s.slice(1)}
+// instruções faladas do exercício; não consomem o tempo da série
+function howTo(k){
+  var e=EX[k],st=e.steps;
+  var parts=st.map(function(s,i){
+    var w=st.length===1?'':(i===0?'Primeiro':(i===st.length-1?'Por fim':'Depois'));
+    return w?w+', '+lowerFirst(s):s;
+  });
+  return e.n+'. Como fazer. '+parts.join(' ')+(e.warn?' Atenção: '+e.warn:'');
+}
+function briefStep(k,lead){return {t:'brief',title:EX[k].n,sub:'Ouça as instruções',say:(lead||'')+howTo(k)}}
+function itemSteps(it,nextName,lead){
+  var name=EX[it.ex].n,sets=it.sets||1,out=[briefStep(it.ex,lead)];
   for(var s=1;s<=sets;s++){
     var side=it.alt?it.alt[(s-1)%it.alt.length]:'';
     var sub=(sets>1?'Série '+s+' de '+sets:'')+(side?' · '+side:'');
-    var lead=name+'. '+(sets>1?'Série '+s+' de '+sets+'. ':'')+(side?side+'. ':'');
-    if(it.work)out.push({t:'work',secs:it.work,title:name,sub:sub||'Mantenha a posição',say:lead+'Segure por '+words(it.work)+'. Comece.'});
-    else out.push({t:'reps',secs:repEstimate(it.reps),title:name,sub:(sub?sub+' · ':'')+repsText(it.reps),say:lead+'Faça '+repsText(it.reps)+', devagar. Comece.',mid:/lado/.test(it.reps)?'Troque de lado.':null});
+    var pre=(sets>1?'Série '+s+' de '+sets+'. ':'')+(side?side+'. ':'');
+    if(it.work)out.push({t:'work',secs:it.work,title:name,sub:sub||'Mantenha a posição',say:pre+'Segure por '+words(it.work)+'. Comece.'});
+    else out.push({t:'reps',secs:repEstimate(it.reps),title:name,sub:(sub?sub+' · ':'')+repsText(it.reps),say:pre+'Faça '+repsText(it.reps)+', devagar. Comece.',mid:/lado/.test(it.reps)?'Troque de lado.':null});
     if(s<sets){
-      var nside=it.alt?' · '+it.alt[s%it.alt.length]:'';
-      out.push({t:'rest',secs:it.rest||45,title:'Descanso',sub:'Próxima: série '+(s+1)+' de '+sets+nside,say:'Pare. Descanse '+words(it.rest||45)+'. Próxima, série '+(s+1)+' de '+sets+(it.alt?', '+it.alt[s%it.alt.length]:'')+'.'});
+      var nside=it.alt?it.alt[s%it.alt.length]:'';
+      out.push({t:'rest',secs:it.rest||45,title:'Intervalo',sub:'Próxima: série '+(s+1)+' de '+sets+(nside?' · '+nside:''),say:'Pare. Série '+s+' de '+sets+' concluída. Intervalo de '+words(it.rest||45)+'.'});
     }
   }
-  if(nextName)out.push({t:'rest',secs:120,title:'Descanso entre exercícios',sub:'Próximo: '+nextName,say:'Pare. Descanse '+words(120)+'. Próximo exercício: '+nextName+'.'});
+  if(nextName)out.push({t:'rest',secs:120,title:'Descanso entre exercícios',sub:'Próximo: '+nextName,say:'Pare. Exercício concluído. Descanse '+words(120)+'. O próximo exercício é '+nextName+'.'});
   return out;
 }
 function circuitSteps(t){
   var list=t.list,n=list.length;
-  var out=[{t:'rest',secs:14,title:'Prepare-se',sub:'Circuito de 3 rodadas',say:'Treino de hoje: '+t.title.replace(':',',')+'. São '+n+' exercícios em 3 rodadas, com 35 segundos de esforço e 30 de pausa. Primeiro: '+EX[list[0].ex].n+'. Prepare-se.'}];
+  var out=[{t:'brief',title:'Circuito leve',sub:'Ouça as instruções',say:'Treino de hoje: '+t.title.replace(':',',')+'. São '+n+' exercícios, repetidos em 3 rodadas. Em cada exercício você trabalha 35 segundos e descansa 30. Na primeira rodada eu explico cada exercício antes de começar.'}];
   for(var r=1;r<=3;r++)for(var j=0;j<n;j++){
     var name=EX[list[j].ex].n;
-    out.push({t:'work',secs:list[j].work,title:name,sub:'Rodada '+r+' de 3 · exercício '+(j+1)+' de '+n,say:name+'. Rodada '+r+'. Comece.'});
+    if(r===1)out.push(briefStep(list[j].ex,'Exercício '+(j+1)+' de '+n+'. '));
+    out.push({t:'work',secs:list[j].work,title:name,sub:'Rodada '+r+' de 3 · exercício '+(j+1)+' de '+n,say:'Rodada '+r+', '+name+'. Comece.'});
     if(!(r===3&&j===n-1)){
       var endRound=(j===n-1),nx=EX[list[endRound?0:j+1].ex].n,secs=endRound?60:30;
-      out.push({t:'rest',secs:secs,title:endRound?'Descanso entre rodadas':'Descanso',sub:'Próximo: '+nx,say:'Pare. '+(endRound?'Fim da rodada '+r+'. ':'')+'Descanse '+words(secs)+'. Próximo: '+nx+'.'});
+      out.push({t:'rest',secs:secs,title:endRound?'Descanso entre rodadas':'Intervalo',sub:'Próximo: '+nx,say:'Pare. '+(endRound?'Rodada '+r+' concluída. ':'')+'Descanse '+words(secs)+'. Próximo: '+nx+'.'});
     }
   }
   return out;
@@ -643,8 +692,11 @@ function circuitSteps(t){
 function workoutSteps(k){
   var t=TREINOS[k];
   if(t.circuit)return circuitSteps(t);
-  var out=[{t:'rest',secs:12,title:'Prepare-se',sub:t.title,say:'Treino de hoje: '+t.title.replace(':',',')+'. São '+t.list.length+' exercícios. Primeiro: '+EX[t.list[0].ex].n+'. Prepare-se.'}];
-  t.list.forEach(function(it,i){out=out.concat(itemSteps(it,i<t.list.length-1?EX[t.list[i+1].ex].n:null))});
+  var out=[];
+  t.list.forEach(function(it,i){
+    var lead=i===0?'Treino de hoje: '+t.title.replace(':',',')+'. São '+t.list.length+' exercícios. Primeiro exercício: ':'';
+    out=out.concat(itemSteps(it,i<t.list.length-1?EX[t.list[i+1].ex].n:null,lead));
+  });
   return out;
 }
 function walkSteps(m){
@@ -653,7 +705,7 @@ function walkSteps(m){
           {t:'work',secs:300,title:'Caminhada',sub:'Desaquecimento: passo leve',say:'Reduza para passo leve, por 5 minutos.'}];
 }
 
-/* ---------- execução ---------- */
+/* ---------- execução: primeiro a voz, depois a contagem ---------- */
 function startQueue(steps,job){
   actx();
   T.steps=steps;T.i=-1;T.paused=false;T.job=job||null;
@@ -664,30 +716,43 @@ function startQueue(steps,job){
 function getLock(){try{if(navigator.wakeLock)navigator.wakeLock.request('screen').then(function(l){T.lock=l;l.addEventListener('release',function(){T.lock=null})}).catch(function(){})}catch(e){}}
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&T.steps.length&&!T.lock)getLock()});
 function nextStep(){
-  clearInterval(T.iv);T.i++;
+  clearInterval(T.iv);T.i++;T.tok++;
   if(T.i>=T.steps.length){finish();return}
   var s=T.steps[T.i],nx=T.steps[T.i+1];
-  T.midDone=false;T.tenDone=false;T.lastSec=-1;
-  $('timer').dataset.phase=s.t==='rest'?'rest':'work';
-  $('tPhase').textContent=s.t==='rest'?'Descanso':'Exercício';
+  T.midDone=false;T.tenDone=false;T.lastSec=-1;T.paused=false;
+  $('timer').dataset.phase=s.t==='rest'||s.t==='brief'?'rest':'work';
   $('tTitle').textContent=s.title;$('tSub').textContent=s.sub||'';
-  $('tNext').textContent=nx?'A seguir: '+(nx.t==='rest'?'descanso':nx.title):'Último passo';
+  var follow=nx&&nx.t==='brief'?nx.title:nx;
+  $('tNext').textContent=nx?'A seguir: '+(nx.t==='rest'?'intervalo':nx.title):'Último passo';
+  $('tPause').hidden=false;$('tPause').textContent='Pausar';$('tDone').hidden=true;
+  begin(s);
+}
+function begin(s){
+  T.state='speaking';
+  $('tPhase').textContent=s.t==='brief'?'Instruções':'Ouça';
+  if(s.t==='brief'){$('tClock').textContent='Ouça';$('tClock').className='t-clock sm'}
+  else{$('tClock').textContent=fmt(s.secs*1000);$('tClock').className='t-clock'}
+  $('tBar').style.width='0';
+  musicStart(s.t==='rest'||s.t==='brief'?'rest':'work');
+  speakThen(s.say,function(){afterSpeech(s)});
+}
+function afterSpeech(s){
+  if(s.t==='brief'){nextStep();return}
+  T.state='counting';
+  $('tPhase').textContent=s.t==='rest'?'Intervalo':'Exercício';
   $('tDone').hidden=s.t!=='reps';
-  $('tPause').hidden=false;$('tPause').textContent='Pausar';T.paused=false;
-  $('tClock').className='t-clock';
   T.left=s.secs*1000;T.end=Date.now()+T.left;
-  paint();T.iv=setInterval(tick,200);
   beep(s.t==='rest'?520:880,250);buzz(s.t==='rest'?120:[120,60,120]);
-  say(s.say);
   musicStart(s.t==='rest'?'rest':'work');
+  paint();T.iv=setInterval(tick,200);
 }
 function paint(){
-  var s=T.steps[T.i];if(!s)return;
+  var s=T.steps[T.i];if(!s||!s.secs)return;
   $('tClock').textContent=fmt(T.left);
   $('tBar').style.width=(100-T.left/(s.secs*1000)*100)+'%';
 }
 function tick(){
-  if(T.paused)return;
+  if(T.paused||T.state!=='counting')return;
   var s=T.steps[T.i];if(!s)return;
   T.left=T.end-Date.now();
   if(T.left<=0){beep(1200,400);buzz(300);nextStep();return}
@@ -698,7 +763,7 @@ function tick(){
   paint();
 }
 function finish(){
-  clearInterval(T.iv);
+  clearInterval(T.iv);T.state='done';
   var msg=T.job?register(T.job):'';
   var walk=T.job&&T.job.kind==='walk';
   $('timer').dataset.phase='work';$('tPhase').textContent='Concluído';
@@ -708,31 +773,37 @@ function finish(){
   $('tDone').hidden=true;$('tPause').hidden=true;
   say('Pare. '+(walk?'Caminhada concluída':'Treino concluído')+'. Parabéns! '+msg);
   beep(660,200);setTimeout(function(){beep(880,200)},250);setTimeout(function(){beep(1100,350)},500);buzz([200,100,200,100,400]);
-  setTimeout(musicStop,6000);
+  setTimeout(musicStop,8000);
   T.i=T.steps.length;
   if(current==='hoje'||current==='progresso')show(current);
 }
 function stop(){
-  clearInterval(T.iv);T.steps=[];T.job=null;
+  clearInterval(T.iv);T.steps=[];T.job=null;T.tok++;T.state='';
   try{speechSynthesis.cancel()}catch(e){}
-  musicStop();
-  $('timer').hidden=true;document.body.classList.remove('timing');
+  M.duck=false;musicStop();
+  $('timer').hidden=true;document.body.classList.remove('timing');$('tVol').hidden=true;
   try{if(T.lock){T.lock.release();T.lock=null}}catch(e){}
 }
-$('tDone').onclick=function(){nextStep()};
+$('tDone').onclick=function(){if(T.state==='counting')nextStep()};
 $('tSkip').onclick=function(){if(T.i<T.steps.length)nextStep();else stop()};
 $('tStop').onclick=stop;
 $('tPause').onclick=function(){
   var s=T.steps[T.i];if(!s)return;
   if(T.paused){
-    T.paused=false;T.end=Date.now()+T.left;$('tPause').textContent='Pausar';
-    musicStart(s.t==='rest'?'rest':'work');
+    T.paused=false;$('tPause').textContent='Pausar';
+    if(T.state==='speaking')begin(s);
+    else{T.end=Date.now()+T.left;musicStart(s.t==='rest'?'rest':'work')}
   }else{
-    T.paused=true;T.left=T.end-Date.now();$('tPause').textContent='Continuar';
+    T.paused=true;T.tok++;
+    if(T.state==='counting')T.left=T.end-Date.now();
+    $('tPause').textContent='Continuar';
     try{speechSynthesis.cancel()}catch(e){}
-    musicStop();
+    M.duck=false;musicStop();
   }
 };
+$('tVol').innerHTML=volRows('tv');
+bindVol('tv');
+$('tVolBtn').onclick=function(){var v=$('tVol');v.hidden=!v.hidden;if(!v.hidden)bindVol('tv')};
 
 /* ---------- cliques ---------- */
 document.addEventListener('click',function(e){
@@ -746,7 +817,7 @@ document.addEventListener('click',function(e){
   }
   else if(a==='ex'){
     var t=TREINOS[b.dataset.w],it=t.list[+b.dataset.i];
-    var st=[{t:'rest',secs:5,title:'Prepare-se',sub:EX[it.ex].n,say:EX[it.ex].n+'. Prepare-se.'}].concat(itemSteps(it,null));
+    var st=itemSteps(it,null);
     startQueue(st);
   }
   else if(a==='walk')startQueue(walkSteps(+b.dataset.m),{kind:'walk'});
